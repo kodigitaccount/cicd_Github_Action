@@ -16,8 +16,8 @@ jobs:
         run: |
           # Install dependencies
           pip install -r requirements.txt
-          pip install cml
-          
+          pip install cml  # Ensure CML is installed
+
           # Ensure the model script exists and run it
           if [ -f "train_model.py" ]; then
             echo "Running model training..."
