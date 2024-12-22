@@ -1,59 +1,31 @@
-
-
-name: CI/CD Pipeline for Model Training
-
+run: model_train using CICD
 permissions:
-  id-token: write
+  id.token: write
   contents: write
 
 on:
-  push:
-    branches:
-      - main  # Change this to any branch you'd like to trigger the action
+  - push
 
 jobs:
   run:
-    runs-on: ubuntu-latest
-
+    runs-on:
+      -ubuntu-latest
     steps:
-      # Step 1: Checkout code from the repository
-      - uses: actions/checkout@v3
-
-      # Step 2: Set up Python environment
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      # Step 3: Install dependencies
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt  # Correct spelling for 'requirements.txt'
-
-      # Step 4: Train the model
-      - name: Train Model
+      - uses:iterative/setup-cml@v1
+      - uses:actions/checkout@v3
+      - name:train_model
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Train your model with the Python script
-          python train_model.py  # Ensure this script exists in your repo and trains the model
+       run: |
+         pip install -r requirments.txt
+         python train_model.py
 
-      # Step 5: Generate the report and append content from report.txt
-      - name: Generate Report
-        run: |
-          echo "Random Forest and Logistic Regression Model Score" > report.md
-          cat report.txt >> report.md  # Append the content from report.txt
+         echo "RF and LR Model Score" > report.md
+         cat report.txt >> report.md # Append content from report.txt
+          
+         echo "Confusion Matrix & Feature Importance" > report1.md
+         echo '|[](./ConfusionMatrix.png "ConfusionMatrix")' >> report1.md
+         echo '|[](./FeatureImportance.png "FeatureImportance")' >> report1.md
 
-          # Add images and confusion matrix
-          echo "Confusion Matrix & Feature Importance" >> report1.md
-          echo '|![Confusion Matrix](./ConfusionMatrix.png "ConfusionMatrix")' >> report1.md
-          echo '|![Feature Importance](./FeatureImportance.png "FeatureImportance")' >> report1.md
-
-          # Combine both reports into a single file
-          cat report.md report1.md > combined_report.md
-
-      # Step 6: Post the report on GitHub using CML
-      - name: Create CML Comment
-        run: |
-          # Assuming you're using CML to post the report as a comment on the PR/Commit
-          cml comment create combined_report.md  
+         cat report.md report1.md > combined_file.md
+         cml comment create combined_file.md
