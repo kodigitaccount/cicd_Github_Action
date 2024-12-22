@@ -1,34 +1,58 @@
-name: CI/CD Pipeline for ML Model
+name: Model Training CI/CD
 
 on:
   push:
-    branches:
-      - main
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    
     steps:
-      # Step 1: Checkout the code
+      - uses: iterative/setup-cml@v1
       - uses: actions/checkout@v3
-
-      # Step 2: Download the dataset (if needed)
-      - name: Download Iris Dataset
+      - name: Train model
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -o iris.csv https://raw.githubusercontent.com/kodigitaccount/cicd_Github_Action/refs/heads/main/iris.csv
-
-      # Step 3: Set up Python environment
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      # Step 4: Install dependencies
-      - name: Install dependencies
-        run: |
+          # Install dependencies
           pip install -r requirements.txt
+          pip install cml
+          
+          # Ensure the model script exists and run it
+          if [ -f "train_model.py" ]; then
+            echo "Running model training..."
+            python train_model.py
+          else
+            echo "train_model.py not found!"
+            exit 1
+          fi
 
-      # Step 5: Run the training script
-      - name: Train Model
-        run: |
-          python train_model.py
+          # Ensure report.txt exists before appending
+          if [ -f "report.txt" ]; then
+            echo "RF and LR Model Score" > report.md
+            cat report.txt >> report.md
+          else
+            echo "report.txt not found!"
+            exit 1
+          fi
+
+          # Check if images exist before adding to the report
+          if [ -f "ConfusionMatrix.png" ]; then
+            echo '|[](./ConfusionMatrix.png "ConfusionMatrix")' >> report1.md
+          else
+            echo "ConfusionMatrix.png not found!"
+            exit 1
+          fi
+          
+          if [ -f "FeatureImportance.png" ]; then
+            echo '|[](./FeatureImportance.png "FeatureImportance")' >> report1.md
+          else
+            echo "FeatureImportance.png not found!"
+            exit 1
+          fi
+
+          # Combine the reports
+          cat report.md report1.md >> combined_file.md
+          
+          # Use CML to post the combined report as a comment
+          cml comment create combined_file.md
