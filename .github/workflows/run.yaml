@@ -1,65 +1,34 @@
-name: model_train
+name: CI/CD Pipeline for ML Model
 
-# Set permissions
-permissions:
-  id-token: write
-  contents: write
-
-# Trigger the workflow on push events
 on:
-  - push
+  push:
+    branches:
+      - main
 
 jobs:
   run:
-    runs-on: ubuntu-latest  # Corrected typo: 'ubentu' -> 'ubuntu'
-
+    runs-on: ubuntu-latest
     steps:
-      # Set up the environment using the CML action (if you are using it for model training)
-      - uses: iterative/setup-cml@v1
-
-      # Check out the code from the repository
+      # Step 1: Checkout the code
       - uses: actions/checkout@v3
 
-      # Install dependencies from requirements.txt
+      # Step 2: Download the dataset (if needed)
+      - name: Download Iris Dataset
+        run: |
+          curl -o iris.csv https://https://github.com/kodigitaccount/cicd_Github_Action/blob/main/iris.csv/iris.csv  # Update with actual URL
+
+      # Step 3: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      # Step 4: Install dependencies
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt  # Make sure the file is named correctly
+          pip install -r requirements.txt
 
-      # Train the model
-      - name: Train model
-        env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Corrected the syntax for referencing secrets
+      # Step 5: Run the training script
+      - name: Train Model
         run: |
-          # Run the model training script
           python train_model.py
-
-          # Check if report.txt exists before proceeding
-          if [ -f "report.txt" ]; then
-            echo "Model training results found in report.txt"
-          else
-            echo "report.txt not found!"
-            exit 1  # Fail the job if report.txt is not found
-          fi
-
-          # Echo output to markdown files
-          echo "RF and LR Model Score" > report.md
-          cat report.txt >> report.md  # Append content from report.txt
-          
-          echo "Confusion Matrix & Feature Importance" > report1.md
-          echo '|[](./ConfusionMatrix.png "ConfusionMatrix")' >> report1.md
-          echo '|[](./FeatureImportance.png "FeatureImportance")' >> report1.md
-     
-          # Check if images exist before proceeding
-          if [ ! -f "./ConfusionMatrix.png" ] || [ ! -f "./FeatureImportance.png" ]; then
-            echo "ConfusionMatrix.png or FeatureImportance.png not found!"
-            exit 1  # Fail the job if the images are missing
-          fi
-
-          # Combine the markdown reports
-          cat report.md report1.md > combined_file.md
-
-      # Create CML comment with the combined markdown file
-      - name: Create CML comment with report
-        run: |
-          # Ensure the path to combined_file.md is valid (relative to repo root)
-          cml comment create combined_file.md
