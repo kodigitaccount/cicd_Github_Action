@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, precision_score, f1_score, recall_
 sns.set(style='white')
 
 # Load Data
-dataset = pd.read_csv('iris.csv')  # Use relative path if possible or correct path
+dataset = pd.read_csv('iris.csv')
 
 # Feature names (Ensure no extra spaces or parentheses)
 dataset.columns = [colname.strip(' (cm)').replace(" ", "_") for colname in dataset.columns.tolist()]
@@ -21,7 +21,7 @@ features_names = dataset.columns.tolist()[:4]
 dataset['sepal_length_width_ratio'] = dataset['sepal_length'] / dataset['sepal_width']
 dataset['petal_length_width_ratio'] = dataset['petal_length'] / dataset['petal_width']
 
-# Select Features (Correct duplicate 'petal_legth_width_ratio' column issue)
+# Select Features (Correct the duplicate column issue)
 dataset = dataset[['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 
                    'sepal_length_width_ratio', 'petal_length_width_ratio', 'target']]
 
@@ -31,7 +31,6 @@ train_data, test_data = train_test_split(dataset, test_size=0.2, random_state=44
 # X_train, y_train, X_test, y_test
 X_train = train_data.drop('target', axis=1).values.astype('float32')
 y_train = train_data.loc[:, 'target'].values.astype('int32')
-
 X_test = test_data.drop('target', axis=1).values.astype('float32')
 y_test = test_data.loc[:, 'target'].values.astype('int32')
 
@@ -40,7 +39,7 @@ logreg = LogisticRegression(C=0.0001, solver='lbfgs', max_iter=100, multi_class=
 logreg.fit(X_train, y_train)
 predictions_lr = logreg.predict(X_test)
 
-cm_lr = confusion_matrix(predictions_lr, y_test)
+cm_lr = confusion_matrix(y_test, predictions_lr)
 f1_lr = f1_score(y_test, predictions_lr, average='micro')
 prec_lr = precision_score(y_test, predictions_lr, average='micro')
 recall_lr = recall_score(y_test, predictions_lr, average='micro')
@@ -54,7 +53,7 @@ rf_reg = RandomForestRegressor()
 rf_reg.fit(X_train, y_train)
 predictions_rf = rf_reg.predict(X_test)
 
-# Since RandomForestRegressor doesn't output class labels, we need to convert to predicted classes
+# Convert predictions to class labels
 predictions_rf_class = np.round(predictions_rf).astype(int)
 
 f1_rf = f1_score(y_test, predictions_rf_class, average='micro')
@@ -96,9 +95,8 @@ def plot_cm(cm, target_name, title="Confusion Matrix", cmap=None, normalize=True
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
     plt.savefig('ConfusionMatrix.png', dpi=120)
-    plt.show()  # Ensure it shows the plot
+    plt.show()
 
-# Plot confusion matrix
 target_name = np.array(['setosa', 'versicolor', 'virginica'])
 plot_cm(cm_lr, target_name, title="Confusion Matrix (Logistic Regression)", cmap=None, normalize=True)
 
@@ -121,3 +119,19 @@ plt.show()  # This ensures the plot will be shown on the screen
 
 # Save the feature importance plot as a PNG image
 plt.savefig('FeatureImportance.png')
+
+# Saving Scores to a File
+with open('scores.txt', "w") as score:
+    score.write("Random Forest Train Var: %2.1f%%\n" % train_acc_rf)
+    score.write("Random Forest Test Var: %2.1f%%\n" % test_acc_rf)
+    score.write("F1 Score: %2.1f%%\n" % f1_rf)
+    score.write("Recall Score: %2.1f%%\n" % recall_rf)
+    score.write("Precision Score: %2.1f%%\n" % prec_rf)
+
+    score.write("\n\n")
+
+    score.write("Logistic Regression Train Var: %2.1f%%\n" % train_acc_lr)
+    score.write("Logistic Regression Test Var: %2.1f%%\n" % test_acc_lr)
+    score.write("F1 Score: %2.1f%%\n" % f1_lr)
+    score.write("Recall Score: %2.1f%%\n" % recall_lr)
+    score.write("Precision Score: %2.1f%%\n" % prec_lr)
