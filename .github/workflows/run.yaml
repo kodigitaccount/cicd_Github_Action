@@ -1,57 +1,32 @@
-name: Python CI/CD Workflow
-
-# Trigger the workflow on push events to the main branch (can be adjusted to your preference)
+name: Model Training CICD
+permissions:
+  id-token: write
+  contents: write 
+  
 on:
-  push:
-    branches:
-      - main  # Modify to your default branch name, if different
-  pull_request:
-    branches:
-      - main  # Modify to your default branch name
+  - push
 
 jobs:
-  # This job sets up Python, installs dependencies, and runs the script
-  run_python_script:
-    runs-on: ubuntu-latest  # Choose the operating system for your runner
-
+  run:
+    runs-on: 
+      - ubuntu-latest
+    
     steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      # Set up Python environment
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'  # You can change this to your desired Python version
-
-      # Install dependencies (assuming you have a requirements.txt file)
-      - name: Install dependencies
+      - uses: iterative/setup-cml@v1
+      - uses: actions/checkout@v3
+      - name: Train model
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python train_model.py
 
-      # Run the Python script
-      - name: Run Python script
-        run: |
-          python your_script.py  # Replace this with your actual script name
-
-      # Optional: Upload confusion matrix and feature importance as artifacts
-      - name: Upload confusion matrix plot as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: confusion-matrix
-          path: ConfusionMatrix.png  # Make sure this matches the path where you save your plot
-
-      - name: Upload feature importance plot as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: feature-importance
-          path: FeatureImportance.png  # Make sure this matches the path where you save your plot
-
-      # Optional: Upload the scores.txt file as an artifact (if generated in your script)
-      - name: Upload scores file as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: scores
-          path: scores.txt
+          echo "RF and LR Model Score" >report.md
+          cat scores.txt >> report.md
+          
+          echo "Confusion Matrix & Feature Importance">report1.md
+          echo '|[](./ConfusionMatrix.png "ConfusionMatrix")' >> report1.md
+          echo '|[](./FeatureImportance.png "FeatureImportance")' >> report1.md
+     
+          cat report.md report1.md >> combined_file.md
+          cml comment create combined_file.md
